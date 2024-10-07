@@ -1,4 +1,4 @@
-version: "3.9"
+#version: "3.9"
 
 volumes:
   prometheus_data: {}
@@ -9,6 +9,8 @@ services:
   # https://github.com/stefanprodan/dockprom
   prometheus:
     image: prom/prometheus:v2.54.1
+    ports:
+    - "9090:9090"
     container_name: mikrotik-prometheus
     volumes:
       - ./prometheus:/etc/prometheus
@@ -27,6 +29,8 @@ services:
   # https://github.com/stefanprodan/dockprom
   grafana:
     image: grafana/grafana:11.2.0
+    ports:
+    - "3000:3000"  # Asegúrate de que esta línea esté presente
     container_name: mikrotik-grafana
     volumes:
       - grafana_data:/var/lib/grafana
