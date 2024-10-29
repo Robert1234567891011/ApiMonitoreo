@@ -1,0 +1,53 @@
+global:
+  # Tiempo de espera antes de marcar una alerta como resuelta
+  resolve_timeout: 5m
+
+# Configuración de rutas de notificación
+route:
+  # Agrupar alertas por estos atributos
+  group_by: ['alertname', 'instance', 'severity']
+
+  # Tiempo para esperar nuevas alertas antes de enviar una notificación de grupo
+  group_wait: 30s
+
+  # Tiempo mínimo entre notificaciones de grupo
+  group_interval: 5m
+
+  # Intervalo para repetir notificaciones de alertas no resueltas
+  repeat_interval: 3h
+
+  # Ruta por defecto para enviar alertas
+  receiver: 'telegram'
+
+  # Reglas de enrutamiento adicionales
+  routes:
+    # Ejemplo de enrutamiento basado en la severidad
+    - match:
+        severity: 'critical'
+      receiver: 'telegram'
+      group_interval: 1m  # Intervalo más corto para alertas críticas
+      repeat_interval: 1h
+
+receivers:
+  - name: 'telegram'
+    telegram_configs:
+      - bot_token: '7913980782:AAEVyg27PP-h7mCChbS-Qon00X6vECJJj-E'
+        chat_id: 5640634444
+        send_resolved: true
+        disable_notification: false
+        message: |
+          🚨 **Alert:** {{ .CommonLabels.alertname }} 
+          🔔 **Severity:** {{ .CommonLabels.severity }} 
+          🖥️ **Instance:** {{ .CommonLabels.instance }} 
+          📋 **Description:** {{ .CommonAnnotations.description }} 
+          📊 **Summary:** {{ .CommonAnnotations.summary }} 
+          {{ if eq .Status "resolved" }} ✅ Resuelto: {{ end }}
+ # Agregar un receptor para ejecutar comandos externos
+  - name: 'exec_command'
+    webhook_configs:
+      - url: 'http://localhost:5000/alert'  # Cambia esta URL al servidor donde se ejecutará el comando
+        send_resolved: true          
+
+# Plantillas para formatear mensajes
+templates:
+  - '/etc/alertmanager/*.tmpl'

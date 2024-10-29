@@ -6,7 +6,7 @@ volumes:
 
 services:
   # Prometheus
-  # https://github.com/stefanprodan/dockprom
+ 
   prometheus:
     image: prom/prometheus:v2.54.1
     ports:
@@ -18,7 +18,24 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=1y" # <= adjust the storage retention period of Prometheus
+      - "--storage.tsdb.retention.time=1y"
+      - "--web.enable-lifecycle" # <= adjust the storage retention period of Prometheus
+    restart: unless-stopped
+    networks:
+      - default
+    labels:
+      org.label-schema.group: "monitoring"
+
+# Alertmanager
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    ports:
+      - "9093:9093"  # Puerto para acceder a Alertmanager
+    container_name: mikrotik-alertmanager
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
     restart: unless-stopped
     networks:
       - default
@@ -26,7 +43,7 @@ services:
       org.label-schema.group: "monitoring"
 
   # Grafana
-  # https://github.com/stefanprodan/dockprom
+  
   grafana:
     image: grafana/grafana:11.2.0
     ports:
@@ -49,7 +66,7 @@ services:
       org.label-schema.group: "monitoring"
 
   # MKTXP
-  # https://github.com/akpw/mktxp
+  
   mktxp:
     image: ghcr.io/akpw/mktxp:gha-10485178964
     container_name: mikrotik-mktxp
@@ -76,7 +93,7 @@ services:
       - default
     restart: unless-stopped
 
-  # https://github.com/prometheus/blackbox_exporter/blob/master/example.yml
+  
   blackbox:
     image: quay.io/prometheus/blackbox-exporter:latest
     container_name: mikrotik-blackbox-exporter
@@ -86,3 +103,7 @@ services:
     networks:
       - default
     restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge

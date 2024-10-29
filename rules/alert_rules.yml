@@ -1,0 +1,52 @@
+groups:
+  - name: example-alerts
+    rules:
+      # Alerta cuando un servicio esté caído
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute."
+
+      # Alerta cuando la utilización de la CPU es demasiado alta
+      - alert: HighCPUUsage
+        expr: avg(rate(container_cpu_usage_seconds_total{job="mikrotik"}[5m])) by (instance) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU Usage on {{ $labels.instance }}"
+          description: "CPU usage is above 85% for more than 5 minutes."
+
+      # Alerta cuando la memoria utilizada es demasiado alta
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{job="mikrotik"} / container_spec_memory_limit_bytes{job="mikrotik"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory Usage on {{ $labels.instance }}"
+          description: "Memory usage is above 85% for more than 5 minutes."
+
+      # Alerta cuando la latencia es alta
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="mikrotik"}[5m])) by (le, instance)) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on {{ $labels.instance }}"
+          description: "Request latency is above 500ms for 95th percentile."
+
+      # Alerta cuando el uso de disco es demasiado alto
+      - alert: HighDiskUsage
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Disk Usage on {{ $labels.instance }}"
+          description: "Disk usage is above 85% for more than 5 minutes."

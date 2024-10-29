@@ -1,50 +1,71 @@
 # my global config
 global:
-  scrape_interval:     120s # By default, scrape targets every 15 seconds.
-  evaluation_interval: 120s # By default, scrape targets every 15 seconds.
-  # scrape_timeout is set to the global default (10s).
+  scrape_interval:     120s  # Intervalo global de recolección de métricas
+  evaluation_interval: 120s  # Intervalo global de evaluación de reglas
+  # scrape_timeout se deja con el valor predeterminado de 10s.
 
-  # Attach these labels to any time series or alerts when communicating with
-  # external systems (federation, remote storage, Alertmanager).
+  # Etiquetas adicionales que se aplican a todas las series de tiempo.
   external_labels:
-      monitor: 'mikrotik-monitoring'
+    monitor: 'mikrotik-monitoring'
 
-# Load and evaluate rules in this file every 'evaluation_interval' seconds.
+# Configuración de alertas para conectarse con Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'  # Dirección del servicio Alertmanager en docker-compose
+
+# Cargar y evaluar reglas de este archivo cada 'evaluation_interval' segundos.
 rule_files:
-  # - "alert.rules"
-  # - "first.rules"
-  # - "second.rules"
+  - "/etc/prometheus/rules/*.yml"  # Ruta a los archivos de reglas de alertas.
 
-# A scrape configuration containing exactly one endpoint to scrape:
-# Here it's Prometheus itself.
+# Configuración de scraping (recolección) de métricas
 scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  # Configuración para recolectar métricas del servicio 'mikrotik'
   - job_name: 'mikrotik'
-
-    # Override the global default and scrape targets from this job every 5 seconds.
-    scrape_interval: 15s
-
-    # metrics_path defaults to '/metrics'
-    # scheme defaults to 'http'.
-
-    static_configs:
-         - targets:
-            - 'mktxp:49090'
-
-  - job_name: 'blackbox'
-    scrape_interval: 1s
-    metrics_path: /probe
-    params:
-      module: [icmp_ttl5]  # use ICMP as the ping protocol
+    scrape_interval: 15s  # Sobrescribe el intervalo global solo para este job.
     static_configs:
       - targets:
-        - 1.1.1.1
-        - 8.8.8.8
-        - 9.9.9.9
+        - 'mktxp:49090'  # El servicio que genera las métricas de Mikrotik.
+
+  # Configuración para recolectar métricas de ping utilizando Blackbox Exporter
+  - job_name: 'mikrotik_ping'
+    scrape_interval: 30s  # Intervalo de scraping para las métricas de ping.
+    metrics_path: /probe  # Ruta para realizar el ping.
+    params:
+      module: [icmp_ttl5]  # Protocolo ICMP para el ping.
+    static_configs:
+      - targets:
+          - 192.168.0.20
+          - 192.168.0.21
+          - 192.168.0.22
     relabel_configs:
+      # Renombrado de etiquetas para asociar IP con ubicaciones personalizadas
       - source_labels: [__address__]
         target_label: __param_target
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
-        replacement: blackbox:9115  # The blackbox exporter's real hostname:port.
+        replacement: blackbox:9115  # Dirección del Blackbox Exporter.
+
+      # Reemplazo de etiquetas para asociar nombres más amigables a las IPs
+      - source_labels: [__param_target]
+        action: replace
+        target_label: instance
+        replacement: 'San Miguel'  # Renombra 192.168.0.21 como 'San Miguel'.
+        regex: '192\\.168\\.0\\.20'
+
+      - source_labels: [__param_target]
+        action: replace
+        target_label: instance
+        replacement: 'Montenegro'  # Renombra 192.168.0.22 como 'Montenegro'.
+        regex: '192\\.168\\.0\\.21'
+
+      - source_labels: [__param_target]
+        action: replace
+        target_label: instance
+        replacement: 'Calacoto'  # Renombra 192.168.0.23 como 'Calacoto'.
+        regex: '192\\.168\\.0\\.22'
+
+
+      
